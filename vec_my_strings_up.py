@@ -3,9 +3,9 @@ import requests
 
 # Server connection and script config
 # conn = "mongodb+srv://"  Get this from Atlas UI
-database = "sample_airbnb"  # Mongo database with collection to vec
-collection = "listingsAndReviews"  # Mongo collection
-fields = ["description", "summary"]  # Fields to vectorize, can specify multiple
+database = "sample_mflix"  # Mongo database with collection to vec
+collection = "movies"  # Mongo collection
+fields = ["plot", "fullplot", "title"]  # Fields to vectorize, can specify multiple
 field_suffix = "_vec_lg" # Name of new vector field will be original field name + this suffix
 
 # Vector service to connect to.  The VectorService tool will work here.
@@ -22,10 +22,22 @@ for doc in col.find():
     # For each field we have configured...
     for field in fields:
         # Query the Vectorizing Service with the text we want
-        query = {"text": doc[field]}
-        response = requests.get(vec_service, params=query)
         try:
+            query = {"text": doc[field]}
+        except:
+            # Show us the broken stuff!
+            print(doc)
+            break
+
+        try:
+            response = requests.get(vec_service, params=query)
             vector = response.json()
+
+            # Don't bother storing vectors for all zero results
+            # It's probably not valid
+            if sum(vector) == 0:
+                print(doc)
+                break
 
             # Update the original document with the vector field
             # WARNING: This can expand your collection size by a lot!
